@@ -50,12 +50,6 @@ public class AddProductHandler implements HttpHandler {
 
                 }
 
-
-
-
-
-                System.out.println(sellerAgent);
-
                 // Send success response
                 String response = "Product added: " + title + " for price " + price;
                 exchange.sendResponseHeaders(200, response.getBytes().length);
@@ -83,13 +77,6 @@ public class AddProductHandler implements HttpHandler {
      */
     private String extractJsonValue(String json, String key) {
 
-//        String searchKey = "\"" + key + "\":";
-//        int startIndex = json.indexOf(searchKey) + searchKey.length();
-//
-//        int endIndex = json.indexOf(",", startIndex);
-//
-//        if (endIndex == -1) endIndex = json.indexOf("}", startIndex);
-//        return json.substring(startIndex, endIndex).replaceAll("[\"\\s]", "");
         JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
         return jsonObject.get(key).getAsString();
     }
