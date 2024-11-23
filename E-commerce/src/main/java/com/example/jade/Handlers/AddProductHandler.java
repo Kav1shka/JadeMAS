@@ -6,7 +6,7 @@ import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
-
+import jade.core.behaviours.*;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.google.gson.JsonObject;
@@ -52,19 +52,19 @@ public class AddProductHandler implements HttpHandler {
                     msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
                     msg.setContent("ADD_PRODUCT:" + title + ":" + price);
 
+
                     // Pass the message to the SellerAgent via O2A
                     sellerAgent.putO2AObject(msg, AgentController.ASYNC);
                     System.out.println("Message sent to SellerAgent: " + msg.getContent());
-                    
-                };
 
-                // Send success response
-                String response = "Product added: " + title + " for price " + price;
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream os = exchange.getResponseBody();
-                os.write(response.getBytes());
-                os.close();
 
+                    // Send success response
+                    String response = "Product added: " + title + " for price " + price;
+                    exchange.sendResponseHeaders(200, response.getBytes().length);
+                    OutputStream os = exchange.getResponseBody();
+                    os.write(response.getBytes());
+                    os.close();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 String errorResponse = "Failed to notify the agent!";
