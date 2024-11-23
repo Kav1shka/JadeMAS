@@ -1,7 +1,10 @@
 package com.example.jade.Handlers;
 
+import jade.core.AID;
+import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
+import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 
 import com.sun.net.httpserver.HttpHandler;
@@ -33,22 +36,27 @@ public class AddProductHandler implements HttpHandler {
                 String title = extractJsonValue(requestBody, "title");
                 int price = Integer.parseInt(extractJsonValue(requestBody, "price"));
 
-                System.out.println(title);
-                System.out.println(price);
 
                 // Verify that the SellerAgent is available
                 AgentController sellerAgent = mainContainer.getAgent("SellerAgent");
+
                 if (sellerAgent == null) {
                     System.out.println("SellerAgent not found in container!");
                     // Optionally, create and start it if not found
                 } else {
-                    System.out.println("SellerAgent found, ready for interaction.");
                     // Now you can interact with the agent
+                    System.out.println("SellerAgent found, ready for interaction.");
 
-                    // Notify the seller agent
-                    sellerAgent.putO2AObject(new Object[] { title, price }, AgentController.ASYNC);
+                    // Create an ACL message
+                    ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+                    msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
+                    msg.setContent("ADD_PRODUCT:" + title + ":" + price);
 
-                }
+                    // Pass the message to the SellerAgent via O2A
+                    sellerAgent.putO2AObject(msg, AgentController.ASYNC);
+                    System.out.println("Message sent to SellerAgent: " + msg.getContent());
+                    
+                };
 
                 // Send success response
                 String response = "Product added: " + title + " for price " + price;

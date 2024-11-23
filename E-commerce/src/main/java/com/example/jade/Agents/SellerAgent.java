@@ -8,17 +8,16 @@ import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-
-import java.util.Hashtable;
-
+import java.util.concurrent.ConcurrentHashMap;
+@SuppressWarnings("unused")
 public class SellerAgent extends Agent {
-    private Hashtable<String, Integer> catalogue;
+    private ConcurrentHashMap<String, Integer> catalogue;
 
     protected void setup() {
-        catalogue = new Hashtable<>();
+        catalogue = new ConcurrentHashMap<>();
         catalogue.put("ProductA", 100);
         catalogue.put("ProductB", 150);
-
+        System.out.println("SellerAgent started.");
         // Register the selling service
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
@@ -32,25 +31,36 @@ public class SellerAgent extends Agent {
             fe.printStackTrace();
         }
 
-        addBehaviour(new com.example.jade.Agents.SellerAgent.OfferRequestsServer());
-        addBehaviour(new com.example.jade.Agents.SellerAgent.PurchaseOrdersServer());
-        addBehaviour(new com.example.jade.Agents.SellerAgent.ProductAddBehaviour());
+        addBehaviour(new OfferRequestsServer());
+        addBehaviour(new PurchaseOrdersServer());
+        addBehaviour(new ProductAddBehaviour());
+    }
+    protected void takeDown() {
+        // Deregister the agent from the DFService
+        try {
+            DFService.deregister(this);
+        } catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
+        System.out.println(getAID().getName() + " terminated.");
     }
 
     /**
      * Behavior to handle adding new products to the catalogue.
      */
     private class ProductAddBehaviour extends CyclicBehaviour {
-        private final Hashtable<String, Integer> catalogue;
+        private ConcurrentHashMap<String, Integer> catalogue = new ConcurrentHashMap<>();
 
-        public ProductAddBehaviour(Hashtable<String, Integer> catalogue) {
+        public ProductAddBehaviour() {
             this.catalogue = catalogue;
         }
 
         @Override
         public void action() {
             ACLMessage msg = myAgent.receive();
+            System.out.println("msg: "+msg);
             if (msg != null && msg.getPerformative() == ACLMessage.REQUEST) {
+                try {
                 String[] content = msg.getContent().split(":");
                 String operation = content[0];
 
@@ -77,10 +87,14 @@ public class SellerAgent extends Agent {
                         } else {
                             catalogue.put(productTitle, productPrice);
                             sendSuccessResponse(msg, "Product added successfully: " + productTitle);
+                            System.out.println("Product added: " + productTitle + " with price " + productPrice);
                         }
                     }
                 } else {
                     sendErrorResponse(msg, "Unknown operation: " + operation);
+                }
+                } catch (Exception e) {
+                    sendErrorResponse(msg, "Invalid message format or data");
                 }
             } else {
                 block(); // No message received, block the behaviour
@@ -92,6 +106,7 @@ public class SellerAgent extends Agent {
             reply.setPerformative(ACLMessage.FAILURE);
             reply.setContent(errorMessage);
             myAgent.send(reply);
+            System.err.println("Error response sent: " + errorMessage);
         }
 
         private void sendSuccessResponse(ACLMessage originalMessage, String successMessage) {
@@ -145,18 +160,7 @@ public class SellerAgent extends Agent {
             }
         }
     }
-//    // New behaviour to handle adding product to the catalogue
-//    private class ProductAddBehaviour extends OneShotBehaviour {
-//        public void action() {
-//            // In a real-world application, you'd probably want to handle product addition through a request.
-//            // For now, the behaviour will just add a new product to the catalogue.
-//            String productName = "WirelessBluetoothHeadphones"; // This would come from the AddProductHandler
-//            int price = 1123; // Also from AddProductHandler
-//
-//            catalogue.put(productName, price); // Add the new product to the catalogue
-//            System.out.println("Product added: " + productName + " for price " + price);
-//        }
-//    }
+
 }
 
 
