@@ -13,61 +13,63 @@ import jade.wrapper.AgentController;
 
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+
+import static jade.core.Profile.*;
 
 public class Main {
     public static void main(String[] args) {
+
         try {
-            // Initialize JADE Runtime
+            // More robust JADE runtime configuration
             Runtime runtime = Runtime.instance();
-
-            // Configure JADE Main Container
             Profile profile = new ProfileImpl();
-            profile.setParameter(Profile.MAIN_HOST, "127.0.0.1"); // Use IPv4
-//            profile.setParameter(Profile.MAIN_HOST, "localhost"); // Set host
-            profile.setParameter(Profile.MAIN_PORT, "1501"); // Set custom port (default 1099)
-            profile.setParameter(Profile.GUI, "false"); // Disable GUI
-//            profile.setParameter(Profile.LOG_LEVEL, "INFO"); // Increase log level
+            profile.setParameter(MAIN_HOST, "127.0.0.1");
+            profile.setParameter(MAIN_PORT, "1501"); // Standard JADE port
+            profile.setParameter(GUI, "false");
+            profile.setParameter(LOCAL_HOST, "127.0.0.1");
+//            profile.setParameter(Profile.MTP, "jade.mtp.http.MessageTransportProtocol");
+//            profile.setParameter(Profile.VERBOSE, "true");
 
-            // Create the Main JADE Container
+//            // Specific network settings
+//            System.setProperty("jade.core.messaging.LocalMessageManager", "enable");
+//            System.setProperty("jade.imtp.leap.JICP.listen_address", "localhost");
+
+
+            // Create main container with error handling
             AgentContainer mainContainer = runtime.createMainContainer(profile);
-            System.out.println("JADE Main Container created on port 1501.");
-
-//            // Install the HTTP MTP (Message Transport Protocol)
-//            mainContainer.installMTP("http", new HttpMTP());
-//            System.out.println("HTTP MTP installed successfully.");
-
-            // Start HTTP Server
-            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-            System.out.println("HTTP Server started on port 8080");
-
-            try {
-                // Create and start the SellerAgent
-                AgentController sellerAgentController = mainContainer.createNewAgent("SellerAgent", "com.example.jade.Agents.SellerAgent", new Object[]{});
-                sellerAgentController.start();  // Start the agent
-
-                // Optionally, log that the agent has started
-                System.out.println("SellerAgent started successfully.");
-
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (mainContainer == null) {
+                throw new RuntimeException("Failed to create JADE main container");
             }
 
-            // Map AddProductHandler to the /add-product endpoint
-            server.createContext("/add-product", (HttpHandler) new AddProductHandler(mainContainer));
-
-            // Set a default executor
-            server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(10));
-
-            // Start the server
+            // HTTP Server with more robust configuration
+            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+            server.setExecutor(Executors.newFixedThreadPool(10));
             server.start();
-            System.out.println("Server is up and running!");
+            System.out.println("Server successfully started on 127.0.0.1:8080");
 
-            // JADE Platform Initialization Complete
-            System.out.println("JADE Platform initialized successfully.");
+            // Agent creation with comprehensive error handling
+            try {
+                AgentController sellerAgent = mainContainer.createNewAgent(
+                        "SellerAgent",
+                        "com.example.jade.Agents.SellerAgent",
+                        new Object[]{}
+                );
+                sellerAgent.start();
+                System.out.println("SellerAgent started successfully.");
+            } catch (Exception agentError) {
+                System.err.println("Agent initialization failed: " + agentError.getMessage());
+                agentError.printStackTrace();
+            }
+
+            // Context mapping
+            server.createContext("/addproduct",new AddProductHandler(mainContainer));
+//            server.createContext("/update-product", new AddProductHandler(mainContainer));
+//            server.createContext("/delete-product", new AddProductHandler(mainContainer));
+
         } catch (Exception e) {
-            System.err.println("Error starting JADE or HTTP server: " + e.getMessage());
+            System.err.println("Critical initialization error: " + e.getMessage());
             e.printStackTrace();
         }
     }
 }
-

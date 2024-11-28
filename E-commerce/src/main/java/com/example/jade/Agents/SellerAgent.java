@@ -1,3 +1,5 @@
+//old one
+
 //package com.example.jade.Agents;
 //
 //import jade.core.Agent;
@@ -149,6 +151,8 @@
 //}
 //
 //
+
+//previous one
 package com.example.jade.Agents;
 
 import jade.core.Agent;
@@ -158,66 +162,154 @@ import jade.lang.acl.ACLMessage;
 import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("unused")
 public class SellerAgent extends Agent {
-    private ConcurrentHashMap<String, Integer> catalogue;
+    //    private ConcurrentHashMap<String, Integer> catalogue;
+//
+//    @Override
+//    protected void setup() {
+//        System.out.println("SellerAgent is ready.");
+//        // Enable O2A communication
+//        setEnabledO2ACommunication(true, 0);
+//
+//        catalogue = new ConcurrentHashMap<>();
+//
+//        // Add a behavior to process O2A objects
+//        addBehaviour(new O2AProcessingBehaviour());
+//    }
+//
+//    private class O2AProcessingBehaviour extends CyclicBehaviour {
+//        @Override
+//        public void action() {
+//            try {
+//                // Retrieve an object from the O2A queue
+//                Object obj = myAgent.getO2AObject();
+//                if (obj != null) {
+//                    // Process the object (e.g., ACLMessage)
+//                    if (obj instanceof ACLMessage) {
+//                        ACLMessage msg = (ACLMessage) obj;
+//                        System.out.println("Received O2A message: " + msg.getContent());
+//                        processMessage(msg);
+//                    } else {
+//                        System.out.println("Unknown object received via O2A: " + obj);
+//                    }
+//                } else {
+//                    block(); // No object in the queue, block the behavior
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
+//        private void processMessage(ACLMessage msg) {
+//            try {
+//                String[] content = msg.getContent().split(":");
+//                String operation = content[0];
+//
+//                if ("ADD_PRODUCT".equals(operation)) {
+//                    String productTitle = content[1];
+//                    int productPrice = Integer.parseInt(content[2]);
+//
+//                    if (productTitle != null && !productTitle.isEmpty() && productPrice > 0) {
+//                        catalogue.put(productTitle, productPrice);
+//                        System.out.println("Product added via O2A: " + productTitle + " with price " + productPrice);
+//                    } else {
+//                        System.out.println("Invalid product details received via O2A.");
+//                    }
+//                } else {
+//                    System.out.println("Unknown operation received via O2A: " + operation);
+//                }
+//            } catch (Exception e) {
+//                System.out.println("Error processing O2A message: " + e.getMessage());
+//            }
+//        }
+//    }
+    private ConcurrentHashMap<String, Product> catalogue;
+
+    // Inner Product class for more robust management
+    private static class Product {
+        String id;
+        String title;
+        int price;
+
+        Product(String id, String title, int price) {
+            this.id = id;
+            this.title = title;
+            this.price = price;
+        }
+    }
 
     @Override
     protected void setup() {
-        System.out.println("SellerAgent is ready.");
-        // Enable O2A communication
-        setEnabledO2ACommunication(true, 0);
-
-        catalogue = new ConcurrentHashMap<>();
-
-        // Add a behavior to process O2A objects
-        addBehaviour(new O2AProcessingBehaviour());
+        try {
+            catalogue = new ConcurrentHashMap<>();
+            System.out.println("SellerAgent Setup Starting...");
+            setEnabledO2ACommunication(true, 0);
+            addBehaviour(new O2AProcessingBehaviour());
+            System.out.println("SellerAgent Setup Completed Successfully.");
+        } catch (Exception e) {
+            System.err.println("SellerAgent Setup Failed: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
+     private class O2AProcessingBehaviour extends CyclicBehaviour {
+            @Override
+            public void action() {
+                try {
 
-    private class O2AProcessingBehaviour extends CyclicBehaviour {
-        @Override
-        public void action() {
-            try {
-                // Retrieve an object from the O2A queue
-                Object obj = myAgent.getO2AObject();
-                if (obj != null) {
-                    // Process the object (e.g., ACLMessage)
+                    Object obj = myAgent.getO2AObject();
                     if (obj instanceof ACLMessage) {
-                        ACLMessage msg = (ACLMessage) obj;
-                        System.out.println("Received O2A message: " + msg.getContent());
-                        processMessage(msg);
+                        processMessage((ACLMessage) obj);
+                    } else if (obj != null) {
+                        System.out.println("Unhandled object type: " + obj.getClass());
                     } else {
-                        System.out.println("Unknown object received via O2A: " + obj);
+                        block();
                     }
-                } else {
-                    block(); // No object in the queue, block the behavior
+                } catch (Exception e) {
+                    System.err.println("O2A Processing Error: " + e.getMessage());
+                    e.printStackTrace();
+                    block(500); // Longer block on error
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            }
+
+            private void processMessage(ACLMessage msg) {
+                try {
+                    String[] parts = msg.getContent().split(":");
+                    String operation = parts[0];
+
+                    switch (operation) {
+                        case "ADD_PRODUCT":
+                            addProduct(parts[1], parts[2], Integer.parseInt(parts[3]));
+                            break;
+                        case "UPDATE_PRODUCT":
+                            updateProduct(parts[1], parts[2], Integer.parseInt(parts[3]));
+                            break;
+                        case "DELETE_PRODUCT":
+                            deleteProduct(parts[1]);
+                            break;
+                        default:
+                            System.out.println("Unknown operation: " + operation);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Message processing error: " + e.getMessage());
+                }
+            }
+
+            private void addProduct(String id, String title, int price) {
+                catalogue.put(id, new Product(id, title, price));
+                System.out.println("Product added: " + title);
+            }
+
+            private void updateProduct(String id, String newTitle, int newPrice) {
+                if (catalogue.containsKey(id)) {
+                    catalogue.put(id, new Product(id, newTitle, newPrice));
+                    System.out.println("Product updated: " + id);
+                }
+            }
+
+            private void deleteProduct(String id) {
+                if (catalogue.remove(id) != null) {
+                    System.out.println("Product deleted: " + id);
+                }
             }
         }
 
-        private void processMessage(ACLMessage msg) {
-            try {
-                String[] content = msg.getContent().split(":");
-                String operation = content[0];
-
-                if ("ADD_PRODUCT".equals(operation)) {
-                    String productTitle = content[1];
-                    int productPrice = Integer.parseInt(content[2]);
-
-                    if (productTitle != null && !productTitle.isEmpty() && productPrice > 0) {
-                        catalogue.put(productTitle, productPrice);
-                        System.out.println("Product added via O2A: " + productTitle + " with price " + productPrice);
-                    } else {
-                        System.out.println("Invalid product details received via O2A.");
-                    }
-                } else {
-                    System.out.println("Unknown operation received via O2A: " + operation);
-                }
-            } catch (Exception e) {
-                System.out.println("Error processing O2A message: " + e.getMessage());
-            }
-        }
     }
-
-
-}

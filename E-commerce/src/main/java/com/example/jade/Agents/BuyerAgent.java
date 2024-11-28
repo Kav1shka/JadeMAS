@@ -10,6 +10,7 @@ import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 
+@SuppressWarnings("unused")
 public class BuyerAgent extends Agent {
     private String targetProduct;
     private AID[] sellerAgents;

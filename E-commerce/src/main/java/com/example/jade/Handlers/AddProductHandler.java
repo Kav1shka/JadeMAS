@@ -16,12 +16,17 @@ import java.io.IOException;
 
 public class AddProductHandler implements HttpHandler {
     private final AgentContainer mainContainer;
-
+//    private static final String[] VALID_OPERATIONS = {"ADD_PRODUCT", "UPDATE_PRODUCT", "DELETE_PRODUCT"};
     public AddProductHandler(AgentContainer mainContainer) {
         System.out.println("Came here 1");
         this.mainContainer = mainContainer;
     }
-
+//    private void validateOperation(String operation) throws IllegalArgumentException {
+//        for (String validOp : VALID_OPERATIONS) {
+//            if (validOp.equals(operation)) return;
+//        }
+//        throw new IllegalArgumentException("Invalid operation: " + operation);
+//    }
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String method = exchange.getRequestMethod();
@@ -35,6 +40,9 @@ public class AddProductHandler implements HttpHandler {
             case "DELETE":
                 handleDeleteProduct(exchange);
                 break;
+            case "GET":
+                handleGetCatalog(exchange);
+                break;
             default:
                 exchange.sendResponseHeaders(405, -1); // Method Not Allowed
         }
@@ -42,6 +50,7 @@ public class AddProductHandler implements HttpHandler {
 
     public void handleAddProduct(HttpExchange exchange) throws IOException {
         if ("POST".equals(exchange.getRequestMethod())) {
+
             try {
                 System.out.println("Came here 2");
                 // Read request body (assuming JSON input)
@@ -52,7 +61,7 @@ public class AddProductHandler implements HttpHandler {
                 // Example: {"title":"Product A", "price":100}
                 String title = extractJsonValue(requestBody, "title");
                 int price = Integer.parseInt(extractJsonValue(requestBody, "price"));
-
+                int id = Integer.parseInt(extractJsonValue(requestBody, "id"));
 
                 // Verify that the SellerAgent is available
                 AgentController sellerAgent = mainContainer.getAgent("SellerAgent");
@@ -67,7 +76,7 @@ public class AddProductHandler implements HttpHandler {
                     // Create an ACL message
                     ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
                     msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
-                    msg.setContent("ADD_PRODUCT:" + title + ":" + price);
+                    msg.setContent("ADD_PRODUCT:"+ id + ":" + title + ":" + price);
 
 
                     // Pass the message to the SellerAgent via O2A
@@ -181,6 +190,46 @@ public class AddProductHandler implements HttpHandler {
             exchange.sendResponseHeaders(405, -1); // Method Not Allowed
         }
     }
+    private void handleGetCatalog(HttpExchange exchange) throws IOException {
+        if ("GET".equals(exchange.getRequestMethod())) {
+            try {
+                // Verify that SellerAgent is available
+                AgentController sellerAgent = mainContainer.getAgent("SellerAgent");
+                if (sellerAgent == null) {
+                    throw new RuntimeException("SellerAgent not found!");
+                }
+
+                // Create and send the GET_CATALOG message
+                ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+                msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
+                msg.setContent("GET_CATALOG");
+                sellerAgent.putO2AObject(msg, AgentController.ASYNC);
+
+                // In a real-world application, you'd need a mechanism to wait for and fetch the response.
+                // For simplicity, simulate the catalog retrieval.
+                String catalogContents = "[{\"id\":\"1\",\"title\":\"Product A\",\"price\":100}," +
+                        "{\"id\":\"2\",\"title\":\"Product B\",\"price\":200}]";
+
+                // Send catalog response
+                exchange.sendResponseHeaders(200, catalogContents.getBytes().length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(catalogContents.getBytes());
+                os.close();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                String errorResponse = "Failed to fetch catalog!";
+                exchange.sendResponseHeaders(500, errorResponse.getBytes().length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(errorResponse.getBytes());
+                os.close();
+            }
+        } else {
+            exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+        }
+    }
+
+
     /**
      * Helper method to extract a value from a JSON string by key.
      * Note: This is a basic implementation. Consider using a JSON library like Jackson or Gson.
