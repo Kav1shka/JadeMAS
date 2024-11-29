@@ -285,6 +285,10 @@ public class SellerAgent extends Agent {
                         case "DELETE_PRODUCT":
                             deleteProduct(parts[1]);
                             break;
+                        case "BUY_PRODUCT":
+                            String productToBuy = parts[1];
+                            buyProduct(productToBuy);
+                            break;
                         default:
                             System.out.println("Unknown operation: " + operation);
                     }
@@ -310,6 +314,16 @@ public class SellerAgent extends Agent {
                     System.out.println("Product deleted: " + id);
                 }
             }
-        }
+         private void buyProduct(String productTitle) {
+             if (catalogue.containsKey(productTitle)) {
+                 // If the product is available in the catalogue
+                 Product product = catalogue.remove(productTitle); // Remove from catalogue
+                 System.out.println("Product " + productTitle + " bought successfully.");
+             } else {
+                 System.out.println("Product " + productTitle + " not found.");
+             }
+         }
+
+     }
 
     }

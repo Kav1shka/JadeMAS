@@ -1,6 +1,7 @@
 package com.example.jade;
 
 import com.example.jade.Handlers.AddProductHandler;
+import com.example.jade.Handlers.BuyerAgentHandler;
 import com.sun.net.httpserver.HttpHandler;
 import jade.core.Runtime;
 import jade.core.Profile;
@@ -62,10 +63,25 @@ public class Main {
                 agentError.printStackTrace();
             }
 
+            // Create BuyerAgent
+            try {
+                AgentController buyerAgent = mainContainer.createNewAgent(
+                        "BuyerAgent",
+                        "com.example.jade.Agents.BuyerAgent",
+                        new Object[]{}
+                );
+                buyerAgent.start();
+                System.out.println("BuyerAgent started successfully.");
+            } catch (Exception agentError) {
+                System.err.println("BuyerAgent initialization failed: " + agentError.getMessage());
+                agentError.printStackTrace();
+            }
+
             // Context mapping
             server.createContext("/addproduct",new AddProductHandler(mainContainer));
 //            server.createContext("/update-product", new AddProductHandler(mainContainer));
 //            server.createContext("/delete-product", new AddProductHandler(mainContainer));
+            server.createContext("/byproduct",new BuyerAgentHandler(mainContainer));
 
         } catch (Exception e) {
             System.err.println("Critical initialization error: " + e.getMessage());

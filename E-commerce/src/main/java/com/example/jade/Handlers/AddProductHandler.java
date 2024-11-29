@@ -17,9 +17,9 @@ import java.io.IOException;
 public class AddProductHandler implements HttpHandler {
     private final AgentContainer mainContainer;
 //    private static final String[] VALID_OPERATIONS = {"ADD_PRODUCT", "UPDATE_PRODUCT", "DELETE_PRODUCT"};
-    public AddProductHandler(AgentContainer mainContainer) {
+   public  AddProductHandler(AgentContainer mainContainer) {
         System.out.println("Came here 1");
-        this.mainContainer = mainContainer;
+     this.mainContainer = mainContainer;
     }
 //    private void validateOperation(String operation) throws IllegalArgumentException {
 //        for (String validOp : VALID_OPERATIONS) {
@@ -70,19 +70,20 @@ public class AddProductHandler implements HttpHandler {
                     System.out.println("SellerAgent not found in container!");
                     // Optionally, create and start it if not found
                 } else {
-                    // Now you can interact with the agent
-                    System.out.println("SellerAgent found, ready for interaction.");
+                    synchronized (sellerAgent) {
+                        // Now you can interact with the agent
+                        System.out.println("SellerAgent found, ready for interaction.");
 
-                    // Create an ACL message
-                    ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-                    msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
-                    msg.setContent("ADD_PRODUCT:"+ id + ":" + title + ":" + price);
+                        // Create an ACL message
+                        ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+                        msg.addReceiver(new AID("SellerAgent", AID.ISLOCALNAME));
+                        msg.setContent("ADD_PRODUCT:" + id + ":" + title + ":" + price);
 
 
-                    // Pass the message to the SellerAgent via O2A
-                    sellerAgent.putO2AObject(msg, AgentController.ASYNC);
-                    System.out.println("Message sent to SellerAgent: " + msg.getContent());
-
+                        // Pass the message to the SellerAgent via O2A
+                        sellerAgent.putO2AObject(msg, AgentController.ASYNC);
+                        System.out.println("Message sent to SellerAgent: " + msg.getContent());
+                    }
 
                     // Send success response
                     String response = "Product added: " + title + " for price " + price;
